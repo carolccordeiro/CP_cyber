@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Análise e Simulação de Ransomware — FIAP Cybersecurity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1E1E1C;
+    --bg-2:#26261F;
+    --bg-3:#2E2E26;
+    --fg:#D9D2C7;
+    --fg-dim:#A8A195;
+    --fg-soft:#7A746B;
+    --green:#5E6E64;
+    --green-soft:#7B8C82;
+    --purple:#6D5C7C;
+    --purple-soft:#8B7A9B;
+    --line:rgba(217,210,199,.16);
+    --line-strong:rgba(217,210,199,.32);
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:'Inter',-apple-system,system-ui,sans-serif;font-weight:400;line-height:1.55;-webkit-font-smoothing:antialiased}
+  body{overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+  .serif{font-family:'Fraunces',serif;font-weight:400;letter-spacing:-.01em}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px}
+  section{padding:120px 0;position:relative;border-top:1px solid var(--line)}
+  section:first-of-type{border-top:none}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:50;backdrop-filter:blur(12px);background:rgba(30,30,28,.72);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;padding-top:18px;padding-bottom:18px;gap:24px}
+  .brand{display:flex;align-items:center;gap:12px;font-family:'Fraunces',serif;font-weight:500;font-size:18px;letter-spacing:-.01em}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(94,110,100,.18)}
+  .navmid{display:flex;gap:28px;font-size:13.5px;color:var(--fg-dim)}
+  .navmid a{transition:color .2s}
+  .navmid a:hover{color:var(--fg)}
+  @media (max-width:880px){.navmid{display:none}}
+
+  .langtog{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px;padding:3px;background:rgba(217,210,199,.03)}
+  .lang-btn{appearance:none;background:transparent;border:0;color:var(--fg-soft);font-family:'Inter',sans-serif;font-size:11.5px;font-weight:500;letter-spacing:.1em;padding:5px 11px;border-radius:999px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+  .lang-btn:hover{color:var(--fg)}
+  .lang-btn.active{background:var(--green);color:var(--bg)}
+
+  .hero{padding-top:200px;padding-bottom:140px;position:relative;overflow:hidden}
+  .hero .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-dim);padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:rgba(217,210,199,.03)}
+  .hero .eyebrow .pulse{width:6px;height:6px;border-radius:50%;background:var(--purple);box-shadow:0 0 12px var(--purple)}
+  .hero h1{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(48px,7.5vw,104px);line-height:1.02;letter-spacing:-.025em;margin:28px 0 28px;max-width:1000px}
+  .hero h1 em{font-style:italic;color:var(--green-soft);font-weight:300}
+  .hero h1 .accent{color:var(--purple-soft);font-style:italic;font-weight:300}
+  .hero .sub{font-size:clamp(17px,1.6vw,21px);color:var(--fg-dim);max-width:680px;line-height:1.6}
+  .hero .meta{display:flex;flex-wrap:wrap;gap:32px;margin-top:64px;padding-top:32px;border-top:1px solid var(--line)}
+  .hero .meta .item{display:flex;flex-direction:column;gap:4px;min-width:140px}
+  .hero .meta .item .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--fg-soft)}
+  .hero .meta .item .v{font-family:'Fraunces',serif;font-size:18px;color:var(--fg)}
+
+  .grid-bg{position:absolute;inset:0;pointer-events:none;opacity:.55;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:80px 80px;
+    mask-image:radial-gradient(ellipse at 70% 30%,#000 0%,transparent 70%);
+    -webkit-mask-image:radial-gradient(ellipse at 70% 30%,#000 0%,transparent 70%);
+  }
+
+  .seclabel{display:flex;align-items:center;gap:16px;color:var(--fg-soft);font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-bottom:32px}
+  .seclabel .num{font-family:'JetBrains Mono',monospace;color:var(--green-soft)}
+  .seclabel .bar{flex:1;height:1px;background:var(--line)}
+  h2{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(36px,5vw,64px);line-height:1.08;letter-spacing:-.02em;margin:0 0 24px;max-width:880px}
+  h2 em{font-style:italic;color:var(--green-soft);font-weight:300}
+  .lede{font-size:clamp(17px,1.4vw,20px);color:var(--fg-dim);max-width:760px;line-height:1.65}
+
+  .warning{margin-top:48px;padding:36px 40px;border:1px solid var(--purple);border-radius:2px;background:linear-gradient(135deg,rgba(109,92,124,.12),rgba(109,92,124,.04));position:relative}
+  .warning::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--purple)}
+  .warning .tag{display:inline-block;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--purple-soft);margin-bottom:14px}
+  .warning h3{font-family:'Fraunces',serif;font-weight:400;font-size:24px;margin:0 0 12px;color:var(--fg)}
+  .warning p{margin:0;color:var(--fg-dim);font-size:15.5px;line-height:1.7}
+
+  .two{display:grid;grid-template-columns:1.1fr 1fr;gap:80px;align-items:start;margin-top:64px}
+  @media (max-width:880px){.two{grid-template-columns:1fr;gap:48px}}
+  .two p{color:var(--fg-dim);font-size:16px;line-height:1.75;margin:0 0 18px}
+  .two p strong{color:var(--fg);font-weight:500}
+
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+  .stats .cell{background:var(--bg);padding:32px 28px}
+  .stats .cell .n{font-family:'Fraunces',serif;font-size:48px;line-height:1;color:var(--green-soft);font-weight:300;letter-spacing:-.02em}
+  .stats .cell .l{margin-top:10px;font-size:13px;color:var(--fg-dim);line-height:1.5}
+
+  .reqs{margin-top:56px;display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+  @media (max-width:760px){.reqs{grid-template-columns:1fr}}
+  .req{background:var(--bg);padding:32px 28px;transition:background .2s}
+  .req:hover{background:var(--bg-2)}
+  .req .num{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--purple-soft);letter-spacing:.1em}
+  .req h4{font-family:'Fraunces',serif;font-weight:400;font-size:20px;margin:10px 0 8px;color:var(--fg)}
+  .req p{margin:0;font-size:14.5px;color:var(--fg-dim);line-height:1.6}
+  .req code{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--green-soft);background:rgba(94,110,100,.1);padding:1px 6px;border-radius:2px}
+
+  .phases{margin-top:64px;display:flex;flex-direction:column;gap:0}
+  .phase{display:grid;grid-template-columns:240px 1fr;gap:64px;padding:48px 0;border-top:1px solid var(--line);align-items:start}
+  .phase:last-child{border-bottom:1px solid var(--line)}
+  @media (max-width:760px){.phase{grid-template-columns:1fr;gap:16px;padding:36px 0}}
+  .phase .pn{display:flex;flex-direction:column;gap:6px}
+  .phase .pn .lbl{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;color:var(--fg-soft);text-transform:uppercase}
+  .phase .pn .num{font-family:'Fraunces',serif;font-size:88px;font-weight:300;color:var(--green-soft);line-height:.95;letter-spacing:-.04em;margin-top:4px}
+  .phase .pn .nm{font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:22px;color:var(--purple-soft);margin-top:6px;letter-spacing:-.01em}
+  .phase h4{font-family:'Fraunces',serif;font-weight:400;font-size:28px;color:var(--fg);margin:0 0 14px;letter-spacing:-.01em;line-height:1.2}
+  .phase p{margin:0 0 12px;color:var(--fg-dim);font-size:15.5px;line-height:1.7}
+  .phase .fn{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--purple-soft);background:rgba(109,92,124,.1);padding:3px 8px;border-radius:2px;border:1px solid rgba(109,92,124,.2)}
+
+  .term{margin-top:56px;background:#161614;border:1px solid var(--line);border-radius:4px;overflow:hidden;font-family:'JetBrains Mono',monospace;font-size:13.5px;line-height:1.7;outline:none;cursor:text;transition:border-color .25s,box-shadow .25s}
+  .term:focus{border-color:var(--green-soft);box-shadow:0 0 0 4px rgba(94,110,100,.12)}
+  .term .bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);background:rgba(217,210,199,.03);cursor:default}
+  .term .bar .b{width:11px;height:11px;border-radius:50%;background:rgba(217,210,199,.18)}
+  .term .bar .title{margin-left:12px;font-size:11px;letter-spacing:.14em;color:var(--fg-soft);text-transform:uppercase}
+  .term .bar .hint{margin-left:auto;font-size:10.5px;letter-spacing:.12em;color:var(--purple-soft);text-transform:uppercase;display:inline-flex;align-items:center;gap:8px;transition:opacity .25s}
+  .term .bar .hint::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--purple);box-shadow:0 0 10px var(--purple);animation:hintpulse 1.4s ease-in-out infinite}
+  .term:focus .bar .hint{opacity:0}
+  @keyframes hintpulse{0%,100%{opacity:.5}50%{opacity:1}}
+  .term-body{padding:24px 28px;color:var(--fg);max-height:520px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+  .term-body::-webkit-scrollbar{width:8px}
+  .term-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+  .term-out{white-space:pre-wrap;word-break:break-word;margin:0}
+  .term-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:0;white-space:pre-wrap}
+  .term-prompt{color:var(--fg-soft);margin-right:8px}
+  .term-input{color:var(--fg);outline:none}
+  .term .cursor{display:inline-block;width:9px;height:1.05em;background:var(--fg);vertical-align:text-bottom;margin-left:2px;animation:blink 1s steps(2,end) infinite}
+  .term:not(:focus) .cursor{animation:none;background:transparent;outline:1px solid var(--fg-soft);outline-offset:-1px}
+  @keyframes blink{50%{background:transparent}}
+  .term .c-dim{color:var(--fg-soft)}
+  .term .c-g{color:var(--green-soft)}
+  .term .c-p{color:var(--purple-soft)}
+  .term .c-warn{color:#C89B6B}
+
+  .defs{margin-top:56px;display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+  @media (max-width:760px){.defs{grid-template-columns:1fr}}
+  .def{background:var(--bg);padding:28px 28px;display:flex;gap:20px;align-items:flex-start;transition:background .2s}
+  .def:hover{background:var(--bg-2)}
+  .def .sym{font-family:'Fraunces',serif;font-size:32px;color:var(--green-soft);line-height:1;font-weight:300;min-width:32px}
+  .def h4{font-family:'Fraunces',serif;font-weight:400;font-size:19px;color:var(--fg);margin:0 0 6px}
+  .def p{margin:0;font-size:14.5px;color:var(--fg-dim);line-height:1.6}
+
+  .quote{margin:48px auto 0;max-width:880px;padding:56px 0;text-align:center;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .quote .mark{font-family:'Fraunces',serif;font-size:80px;line-height:0;color:var(--purple-soft);font-style:italic;font-weight:300}
+  .quote blockquote{margin:36px 0 0;font-family:'Fraunces',serif;font-weight:300;font-size:clamp(22px,2.4vw,32px);line-height:1.35;letter-spacing:-.01em;color:var(--fg);font-style:italic}
+  .quote blockquote em{color:var(--green-soft)}
+
+  .team{margin-top:56px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+  @media (max-width:780px){.team{grid-template-columns:repeat(2,1fr)}}
+  .member{background:var(--bg);padding:32px 24px;text-align:left}
+  .member .ini{font-family:'Fraunces',serif;font-size:44px;font-weight:300;color:var(--green-soft);line-height:1;letter-spacing:-.02em}
+  .member .nm{margin-top:18px;font-family:'Fraunces',serif;font-size:17px;color:var(--fg);line-height:1.3}
+  .member .rm{margin-top:4px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--fg-soft);letter-spacing:.06em}
+
+  .refs{margin-top:48px;display:flex;flex-direction:column;gap:0}
+  .ref{padding:22px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:80px 1fr auto;gap:24px;align-items:center;color:var(--fg-dim);transition:color .2s;font-size:15px}
+  .ref:last-child{border-bottom:1px solid var(--line)}
+  .ref .rn{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--fg-soft)}
+  .ref .rt{font-family:'Fraunces',serif;font-size:18px;color:var(--fg)}
+  .ref .ru{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--green-soft)}
+  @media (max-width:680px){.ref{grid-template-columns:50px 1fr;gap:12px}.ref .ru{grid-column:2}}
+
+  footer{padding:80px 0 56px;border-top:1px solid var(--line);color:var(--fg-soft);font-size:13px}
+  footer .wrap{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px}
+  footer .ft-brand{font-family:'Fraunces',serif;font-size:42px;font-weight:300;color:var(--fg);line-height:1;letter-spacing:-.02em}
+  footer .ft-brand em{font-style:italic;color:var(--green-soft)}
+
+  .pill{display:inline-block;padding:5px 12px;border-radius:999px;border:1px solid var(--line);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-dim)}
+  .pill.green{border-color:rgba(94,110,100,.5);color:var(--green-soft);background:rgba(94,110,100,.08)}
+  .pill.purple{border-color:rgba(109,92,124,.5);color:var(--purple-soft);background:rgba(109,92,124,.08)}
+
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .8s ease}
+  .reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span>FIAP <em class="serif" style="font-style:italic;color:var(--fg-soft);font-weight:400">·</em> Cybersecurity CP02</div>
+    <div class="navmid">
+      <a href="#problema" data-en="Problem">Problema</a>
+      <a href="#solucao" data-en="Solution">Solução</a>
+      <a href="#fluxo" data-en="Flow">Fluxo</a>
+      <a href="#defesas" data-en="Defenses">Defesas</a>
+      <a href="#equipe" data-en="Team">Equipe</a>
+    </div>
+    <div class="langtog" role="group" aria-label="Language">
+      <button class="lang-btn active" data-lang="pt" type="button">PT</button>
+      <button class="lang-btn" data-lang="en" type="button">EN</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="grid-bg"></div>
+  <div class="wrap">
+    <span class="eyebrow" data-en="&lt;span class=&quot;pulse&quot;&gt;&lt;/span&gt;Checkpoint 02 · Educational Simulation"><span class="pulse"></span>Checkpoint 02 · Simulação Educacional</span>
+    <h1 data-en="Analysis and &lt;em&gt;simulation&lt;/em&gt; of a&lt;br&gt;&lt;span class=&quot;accent&quot;&gt;ransomware&lt;/span&gt; attack.">Análise e<br><em>simulação</em> de um ataque<br>de <span class="accent">ransomware</span>.</h1>
+    <p class="sub" data-en="Refactoring an encrypted-backup project into a didactic, controlled, and fully reversible simulation — to understand, in code, the line between defense and offense.">Refatoração de um projeto de backup criptografado em uma simulação didática, controlada e integralmente reversível — para entender, em código, a fronteira entre defesa e ofensa.</p>
+    <div class="meta">
+      <div class="item"><span class="k" data-en="Subject">Disciplina</span><span class="v">Cybersecurity</span></div>
+      <div class="item"><span class="k" data-en="Institution">Instituição</span><span class="v">FIAP</span></div>
+      <div class="item"><span class="k" data-en="Year">Ano</span><span class="v">2026</span></div>
+      <div class="item"><span class="k" data-en="Language">Linguagem</span><span class="v">Python 3.9+</span></div>
+      <div class="item"><span class="k" data-en="Location">Local</span><span class="v">São Paulo</span></div>
+    </div>
+  </div>
+</header>
+
+<section id="aviso">
+  <div class="wrap">
+    <div class="seclabel"><span class="num">00 /</span><span data-en="Notice">Aviso</span><span class="bar"></span></div>
+    <h2 data-en="Strictly &lt;em&gt;educational&lt;/em&gt; scope.">Caráter <em>exclusivamente</em> educacional.</h2>
+    <div class="warning reveal">
+      <span class="tag" data-en="⚠ Warning">⚠ Atenção</span>
+      <h3 data-en="No file is cryptographically encrypted.">Nenhum arquivo é cifrado criptograficamente.</h3>
+      <p data-en="Files in the target folder are moved to a local quarantine and replaced by informational &lt;span class=&quot;mono&quot; style=&quot;color:var(--green-soft)&quot;&gt;.locked&lt;/span&gt; placeholders. The operation is fully reversible via a demo key. The program acts only inside its own auto-created sandbox folder and blocks any attempt to operate outside it. &lt;strong&gt;Use outside the academic environment is prohibited.&lt;/strong&gt;">Os arquivos da pasta-alvo são movidos para uma quarentena local e substituídos por placeholders informativos <span class="mono" style="color:var(--green-soft)">.locked</span>. A operação é integralmente reversível por meio de uma chave de demonstração. O programa só atua dentro da sua pasta sandbox auto-criada e bloqueia qualquer tentativa de operar fora dela. <strong>Está vedado o uso fora do ambiente acadêmico.</strong></p>
+    </div>
+  </div>
+</section>
+
+<section id="problema">
+  <div class="wrap">
+    <div class="seclabel"><span class="num">01 /</span><span data-en="The Problem">O Problema</span><span class="bar"></span></div>
+    <h2 data-en="Ransomware is the most &lt;em&gt;profitable&lt;/em&gt; criminal business of the past decade.">Ransomware é o <em>negócio criminal</em> mais lucrativo da última década.</h2>
+    <p class="lede" data-en="Families like &lt;strong style=&quot;color:var(--fg)&quot;&gt;WannaCry&lt;/strong&gt;, &lt;strong style=&quot;color:var(--fg)&quot;&gt;LockBit&lt;/strong&gt;, &lt;strong style=&quot;color:var(--fg)&quot;&gt;Conti&lt;/strong&gt;, and &lt;strong style=&quot;color:var(--fg)&quot;&gt;Ryuk&lt;/strong&gt; have caused billions in damages across organizations of every size. The modus operandi repeats: deny the rightful owner access to their own data — typically through cryptographic encryption — and demand a cryptocurrency ransom to restore it.">Famílias como <strong style="color:var(--fg)">WannaCry</strong>, <strong style="color:var(--fg)">LockBit</strong>, <strong style="color:var(--fg)">Conti</strong> e <strong style="color:var(--fg)">Ryuk</strong> causaram prejuízos bilionários em organizações de todos os portes. O modus operandi se repete: restringir o acesso do legítimo proprietário aos próprios dados — normalmente por meio de cifragem criptográfica — e exigir resgate em criptomoedas para restauração.</p>
+
+    <div class="two">
+      <div>
+        <p data-en="&lt;strong&gt;What we learn by building one.&lt;/strong&gt; Symmetric cryptography is a neutral tool: the same technique used by legitimate backup is used by ransomware. What sets attack apart from defense is &lt;em&gt;who controls the key&lt;/em&gt; and the &lt;em&gt;operator's intent&lt;/em&gt;."><strong>O que entendemos ao construir um.</strong> A criptografia simétrica é uma ferramenta neutra: a mesma técnica usada por backup legítimo é usada por ransomware. O que diferencia ataque de defesa é <em>quem controla a chave</em> e a <em>intenção do operador</em>.</p>
+        <p data-en="This simulation reproduces, at didactic scale, the four observable phases of a real attack — reconnaissance, detonation, notification, and persistence — without encrypting a single byte. The transformation is reversible by design.">Esta simulação reproduz, em escala didática, as quatro fases observáveis de um ataque real — varredura, detonação, notificação e persistência — sem cifrar um único byte. A transformação é reversível por design.</p>
+      </div>
+      <div class="stats">
+        <div class="cell"><div class="n">4</div><div class="l" data-en="observable phases of a real attack">fases observáveis<br>de um ataque real</div></div>
+        <div class="cell"><div class="n">6</div><div class="l" data-en="assignment requirements met">requisitos do<br>enunciado atendidos</div></div>
+        <div class="cell"><div class="n">100%</div><div class="l" data-en="reversible with the demo key">reversível com<br>chave de demonstração</div></div>
+        <div class="cell"><div class="n">0</div><div class="l" data-en="bytes of content actually encrypted">bytes de conteúdo<br>realmente cifrados</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="solucao">
+  <div class="wrap">
+    <div class="seclabel"><span class="num">02 /</span><span data-en="The Solution">A Solução</span><span class="bar"></span></div>
+    <h2 data-en="Six requirements. &lt;em&gt;One&lt;/em&gt; modular Python architecture.">Seis requisitos. <em>Uma</em> arquitetura modular em Python.</h2>
+    <p class="lede" data-en="Each requirement from the assignment maps to a named function, in a single file, run from an interactive terminal menu.">Cada requisito do enunciado mapeia para uma função nomeada, em um único arquivo, executado por menu interativo no terminal.</p>
+
+    <div class="reqs">
+      <div class="req">
+        <span class="num">REQ 01</span>
+        <h4 data-en="Simulated Encryption">Criptografia Simulada</h4>
+        <p data-en="Move to quarantine with a &lt;code&gt;.locked&lt;/code&gt; placeholder at the original path. Folder structure preserved.">Movimentação para quarentena com placeholder <code>.locked</code> no caminho original. Estrutura de pastas preservada.</p>
+      </div>
+      <div class="req">
+        <span class="num">REQ 02</span>
+        <h4 data-en="Execution Control">Controle de Execução</h4>
+        <p data-en="Prior-run detection in &lt;code&gt;estado.json&lt;/code&gt; prevents accidental re-attack before recovery.">Detecção de execução prévia em <code>estado.json</code> impede re-ataque acidental antes da recuperação.</p>
+      </div>
+      <div class="req">
+        <span class="num">REQ 03</span>
+        <h4 data-en="Ransom Screen">Tela de Resgate</h4>
+        <p data-en="Structured ASCII interface with victim ID, fictional amount (0.5 BTC), wallet, and countdown.">Interface ASCII estruturada com ID da vítima, valor fictício (0,5 BTC), carteira e contagem regressiva.</p>
+      </div>
+      <div class="req">
+        <span class="num">REQ 04</span>
+        <h4 data-en="Simulated Decryption">Descriptografia Simulada</h4>
+        <p data-en="Full reversal after validating the demo key &lt;code&gt;teste_&lt;/code&gt;. Reads the manifest and restores everything.">Reversão integral mediante validação da chave de demonstração <code>teste_</code>. Lê o manifesto e restaura tudo.</p>
+      </div>
+      <div class="req">
+        <span class="num">REQ 05</span>
+        <h4 data-en="Logging">Registro de Logs</h4>
+        <p data-en="Every action is written to &lt;code&gt;logs/operacao.log&lt;/code&gt; with a timestamp — chronological, auditable.">Cada ação é gravada em <code>logs/operacao.log</code> com timestamp — cronológico, auditável.</p>
+      </div>
+      <div class="req">
+        <span class="num">REQ 06</span>
+        <h4 data-en="Code Organization">Organização do Código</h4>
+        <p data-en="Named functions for scanning, encryption, decryption, ransom screen, logs, and state. Modular and readable.">Funções nomeadas para varredura, cripto, descripto, tela de resgate, logs e estado. Modular e legível.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="fluxo">
+  <div class="wrap">
+    <div class="seclabel"><span class="num">03 /</span><span data-en="Attack Flow">Fluxo do Ataque</span><span class="bar"></span></div>
+    <h2 data-en="Four phases. &lt;em&gt;Real-ransomware&lt;/em&gt; behavior, didactic mechanics.">Quatro fases. <em>Comportamento</em> de ransomware real, mecânica didática.</h2>
+
+    <div class="phases">
+      <div class="phase">
+        <div class="pn">
+          <span class="lbl" data-en="Phase 01">Fase 01</span>
+          <span class="num">01</span>
+          <span class="nm" data-en="Reconnaissance">Reconhecimento</span>
+        </div>
+        <div>
+          <h4 data-en="Recursive sandbox scan.">Varredura recursiva da sandbox.</h4>
+          <p data-en="The &lt;span class=&quot;fn&quot;&gt;varrer_arquivos()&lt;/span&gt; function recursively walks &lt;span class=&quot;mono&quot; style=&quot;color:var(--green-soft)&quot;&gt;sandbox_alvo/&lt;/span&gt; and builds the candidate list. In real ransomware, this phase maps the filesystem after initial execution — when the malware decides which extensions to encrypt (documents, spreadsheets, databases, media).">A função <span class="fn">varrer_arquivos()</span> percorre recursivamente <span class="mono" style="color:var(--green-soft)">sandbox_alvo/</span> e gera a lista de candidatos. Em ransomware real, esta fase corresponde ao mapeamento do filesystem após a execução inicial — momento em que o malware decide quais extensões cifrar (documentos, planilhas, bancos de dados, mídias).</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="pn">
+          <span class="lbl" data-en="Phase 02">Fase 02</span>
+          <span class="num">02</span>
+          <span class="nm" data-en="Detonation">Detonação</span>
+        </div>
+        <div>
+          <h4 data-en="Move to quarantine + placeholder.">Movimentação para quarentena + placeholder.</h4>
+          <p data-en="Each file is moved to &lt;span class=&quot;mono&quot; style=&quot;color:var(--green-soft)&quot;&gt;.quarentena_simulacao/&lt;/span&gt; preserving the relative structure. At the original path, a &lt;span class=&quot;mono&quot; style=&quot;color:var(--green-soft)&quot;&gt;.locked&lt;/span&gt; file is created with the victim ID, original path, and a notice. In real ransomware this would correspond to &lt;strong&gt;AES-256-GCM&lt;/strong&gt; encryption with a per-file key, that key in turn encrypted with the attacker's &lt;strong&gt;RSA public key&lt;/strong&gt; — hybrid cryptography.">Cada arquivo é deslocado para <span class="mono" style="color:var(--green-soft)">.quarentena_simulacao/</span> preservando a estrutura relativa. No local original, é criado um <span class="mono" style="color:var(--green-soft)">.locked</span> com ID da vítima, caminho original e aviso. Em ransomware real, este passo corresponderia a cifragem <strong>AES-256-GCM</strong> com chave por arquivo, e essa chave cifrada com a <strong>chave pública RSA</strong> do atacante — criptografia híbrida.</p>
+          <p><span class="fn">simular_criptografia()</span></p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="pn">
+          <span class="lbl" data-en="Phase 03">Fase 03</span>
+          <span class="num">03</span>
+          <span class="nm" data-en="Notification">Notificação</span>
+        </div>
+        <div>
+          <h4 data-en="Ransom screen in the terminal.">Tela de resgate no terminal.</h4>
+          <p data-en="The &lt;span class=&quot;fn&quot;&gt;exibir_tela_resgate()&lt;/span&gt; function shows: a unique victim ID (truncated SHA-256 of UUID v4 + timestamp), number of affected files, fictional ransom amount, fictional wallet address, and countdown. In real ransomware, this artifact is usually an HTML opened automatically, an altered wallpaper, or a kiosk-mode window.">A função <span class="fn">exibir_tela_resgate()</span> apresenta: identificador único da vítima (SHA-256 truncado de UUID v4 + timestamp), número de arquivos afetados, valor fictício do resgate, endereço de carteira fictícia e contagem regressiva. Em ransomware real, este artefato costuma ser um HTML aberto automaticamente, wallpaper alterado, ou janela em modo kiosk.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="pn">
+          <span class="lbl" data-en="Phase 04">Fase 04</span>
+          <span class="num">04</span>
+          <span class="nm" data-en="Persistence">Persistência</span>
+        </div>
+        <div>
+          <h4 data-en="Manifest and state on disk.">Manifesto e estado em disco.</h4>
+          <p data-en="&lt;span class=&quot;mono&quot; style=&quot;color:var(--green-soft)&quot;&gt;estado.json&lt;/span&gt; records that an attack ran, with the victim ID and the full manifest of affected files. This mechanism (i) prevents an accidental second execution before recovery, and (ii) lets the decryption function know exactly what to revert."><span class="mono" style="color:var(--green-soft)">estado.json</span> registra que um ataque foi executado, com ID da vítima e manifesto completo dos arquivos afetados. Esse mecanismo (i) impede uma segunda execução acidental antes da recuperação, e (ii) permite que a função de descriptografia saiba exatamente o que reverter.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="term" id="term" tabindex="0" role="region" aria-label="Interactive ransomware simulation terminal">
+      <div class="bar">
+        <span class="b"></span><span class="b"></span><span class="b"></span>
+        <span class="title" data-en="terminal — interactive simulation">terminal — simulacao interativa</span>
+        <span class="hint" data-en="click to interact">clique para interagir</span>
+      </div>
+      <div class="term-body" id="term-body">
+        <div class="term-out" id="term-out"></div>
+        <div class="term-line">
+          <span class="term-prompt" id="term-prompt">Escolha:</span><span class="term-input" id="term-input"></span><span class="cursor" aria-hidden="true"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="recuperacao">
+  <div class="wrap">
+    <div class="seclabel"><span class="num">04 /</span><span data-en="Recovery">Recuperação</span><span class="bar"></span></div>
+    <h2 data-en="Full reversal &lt;em&gt;with the key&lt;/em&gt;.">Reversão integral <em>mediante chave</em>.</h2>
+    <p class="lede" data-en="The &lt;span class=&quot;mono&quot; style=&quot;color:var(--purple-soft)&quot;&gt;simular_descriptografia()&lt;/span&gt; function is invoked via menu option 2. Only if the key matches, the system walks the manifest and restores everything.">A função <span class="mono" style="color:var(--purple-soft)">simular_descriptografia()</span> é acionada pela opção 2 do menu. Apenas se a chave conferir, o sistema percorre o manifesto e restaura tudo.</p>
+
+    <div class="reqs" style="margin-top:48px">
+      <div class="req"><span class="num" data-en="STEP 01">PASSO 01</span><h4 data-en="Key validation">Validação da chave</h4><p data-en="Default simulation key: &lt;code&gt;teste_&lt;/code&gt;. In real ransomware, it would be the attacker's RSA private key — handed over only after payment, when it's handed over at all.">Chave padrão da simulação: <code>teste_</code>. Em ransomware real, seria a chave privada RSA do atacante — entregue apenas após o pagamento, quando entregue.</p></div>
+      <div class="req"><span class="num" data-en="STEP 02">PASSO 02</span><h4 data-en="Read the manifest">Leitura do manifesto</h4><p data-en="The system reads &lt;code&gt;logs/estado.json&lt;/code&gt; and walks exactly the files affected by the attack.">O sistema lê <code>logs/estado.json</code> e percorre exatamente os arquivos afetados pelo ataque.</p></div>
+      <div class="req"><span class="num" data-en="STEP 03">PASSO 03</span><h4 data-en="Restoration">Restauração</h4><p data-en="Deletes each &lt;code&gt;.locked&lt;/code&gt; placeholder. Moves the original files back from quarantine to their original paths.">Apaga cada placeholder <code>.locked</code>. Move os arquivos originais de volta da quarentena para os caminhos originais.</p></div>
+      <div class="req"><span class="num" data-en="STEP 04">PASSO 04</span><h4 data-en="Wrap-up">Encerramento</h4><p data-en="Clears empty directories, disables the 'active attack' flag, and logs each action with a timestamp.">Limpa diretórios vazios, desativa a flag de "ataque ativo" e registra cada ação no log com timestamp.</p></div>
+    </div>
+
+    <div class="quote">
+      <div class="mark">"</div>
+      <blockquote data-en="Even without the key, files remain fully &lt;em&gt;preserved&lt;/em&gt; in quarantine. Reversal is always possible — by design.">Mesmo sem a chave, os arquivos estão integralmente <em>preservados</em> em quarentena. A reversão é sempre possível — por design.</blockquote>
+    </div>
+  </div>
+</section>
+
+<section id="defesas">
+  <div class="wrap">
+    <div class="seclabel"><span class="num">05 /</span><span data-en="Defenses">Defesas</span><span class="bar"></span></div>
+    <h2 data-en="Understanding the attack is the &lt;em&gt;first step&lt;/em&gt; toward building defense.">Compreender o ataque é o <em>primeiro passo</em> para construir defesa.</h2>
+    <p class="lede" data-en="The most effective countermeasures against ransomware operate in layers — none works alone.">As contramedidas mais eficazes contra ransomware operam em camadas — nenhuma resolve sozinha.</p>
+
+    <div class="defs">
+      <div class="def"><span class="sym">①</span><div><h4 data-en="3-2-1 Backup">Backup 3-2-1</h4><p data-en="Three copies of the data, on two media types, with one offline copy (offsite/immutable). The primary countermeasure.">Três cópias dos dados, em dois tipos de mídia, com uma cópia offline (offsite/imutável). A contramedida primária.</p></div></div>
+      <div class="def"><span class="sym">②</span><div><h4 data-en="Least privilege">Menor privilégio</h4><p data-en="Users and services with only the permissions strictly needed for their role.">Usuários e serviços só com as permissões estritamente necessárias para sua função.</p></div></div>
+      <div class="def"><span class="sym">③</span><div><h4>EDR / XDR</h4><p data-en="Behavioral detection — mass encryption, anomalous extensions, Volume Shadow Copy being disabled.">Detecção comportamental — cifragem em massa, extensões anômalas, desativação de Volume Shadow Copy.</p></div></div>
+      <div class="def"><span class="sym">④</span><div><h4 data-en="Network segmentation">Segmentação de rede</h4><p data-en="Limit lateral movement between workstations, servers, and backup infrastructure.">Limitar movimentação lateral entre estações, servidores e infraestrutura de backup.</p></div></div>
+      <div class="def"><span class="sym">⑤</span><div><h4 data-en="Awareness">Conscientização</h4><p data-en="The most common entry point is still phishing. Ongoing training is real defense.">A porta de entrada mais comum continua sendo phishing. Treinamento contínuo é defesa real.</p></div></div>
+      <div class="def"><span class="sym">⑥</span><div><h4 data-en="Patch management">Patch management</h4><p data-en="Timely application of fixes. WannaCry exploited EternalBlue (MS17-010) with the patch already available.">Aplicação tempestiva de correções. WannaCry explorou EternalBlue (MS17-010) com patch já disponível.</p></div></div>
+      <div class="def"><span class="sym">⑦</span><div><h4 data-en="Universal MFA">MFA universal</h4><p data-en="Multifactor authentication on every VPN, RDP, and admin access path.">Autenticação multifator em tudo que for VPN, RDP e acesso administrativo.</p></div></div>
+      <div class="def"><span class="sym">⑧</span><div><h4 data-en="Response plan">Plano de resposta</h4><p data-en="Defined roles, ready contacts, isolation and communication procedures. Trained before — not during.">Papéis definidos, contatos prontos, procedimento de isolamento e comunicação. Treinado antes — não durante.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="conclusao">
+  <div class="wrap">
+    <div class="seclabel"><span class="num">06 /</span><span data-en="Conclusion">Conclusão</span><span class="bar"></span></div>
+    <h2 data-en="The line between defense and offense is &lt;em&gt;who holds the key&lt;/em&gt;.">A fronteira entre defesa e ofensa é <em>o controle da chave</em>.</h2>
+    <p class="lede" data-en="Refactoring the encrypted-backup project into a ransomware simulation made it clear that the same cryptography that protects can also hold data hostage. What changes is who holds the key and what their intent is. The exercise consolidated knowledge of symmetric and hybrid cryptography, attack flows, modular code organization, and the central importance of &lt;strong style=&quot;color:var(--fg)&quot;&gt;immutable backup&lt;/strong&gt; as the primary countermeasure.">A refatoração do projeto de backup criptografado em uma simulação de ransomware evidenciou que a mesma criptografia que protege também sequestra. O que muda é quem detém a chave e qual a intenção. O exercício consolidou conhecimento sobre criptografia simétrica e híbrida, fluxos de ataque, organização modular de código e a importância capital do <strong style="color:var(--fg)">backup imutável</strong> como contramedida primária.</p>
+    <p class="lede" style="margin-top:24px" data-en="Responsible simulation — without real encryption and with isolation by design — proved pedagogically equivalent and operationally safe.">A simulação responsável — sem cifragem real e com isolamento por design — provou ser pedagogicamente equivalente e operacionalmente segura.</p>
+
+    <div style="margin-top:48px;display:flex;gap:10px;flex-wrap:wrap">
+      <span class="pill green" data-en="Symmetric cryptography">Criptografia simétrica</span>
+      <span class="pill green" data-en="Hybrid cryptography">Criptografia híbrida</span>
+      <span class="pill purple">Modus operandi</span>
+      <span class="pill purple" data-en="Ransom screen">Tela de resgate</span>
+      <span class="pill green" data-en="Immutable backup">Backup imutável</span>
+      <span class="pill green">Sandbox</span>
+      <span class="pill purple" data-en="Auditable logs">Logs auditáveis</span>
+      <span class="pill green" data-en="Reversible manifest">Manifesto reversível</span>
+    </div>
+  </div>
+</section>
+
+<section id="equipe">
+  <div class="wrap">
+    <div class="seclabel"><span class="num">07 /</span><span data-en="Team">Equipe</span><span class="bar"></span></div>
+    <h2 data-en="Four &lt;em&gt;authors&lt;/em&gt;.">Quatro <em>autores</em>.</h2>
+
+    <div class="team">
+      <div class="member"><div class="ini">CC</div><div class="nm">Carolina<br>Cordeiro Silva</div><div class="rm">RM 564234</div></div>
+      <div class="member"><div class="ini">GP</div><div class="nm">Gabriel<br>Henrique Pioli</div><div class="rm">RM 567724</div></div>
+      <div class="member"><div class="ini">JV</div><div class="nm">João Victor<br>Tozzatti Matiro</div><div class="rm">RM 567510</div></div>
+      <div class="member"><div class="ini">PD</div><div class="nm">Pedro<br>Diagro Lopes</div><div class="rm">RM 568393</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="referencias">
+  <div class="wrap">
+    <div class="seclabel"><span class="num">08 /</span><span data-en="References">Referências</span><span class="bar"></span></div>
+    <h2 data-en="To &lt;em&gt;go deeper&lt;/em&gt;.">Para <em>aprofundar</em>.</h2>
+
+    <div class="refs">
+      <div class="ref"><span class="rn">[01]</span><span class="rt">CISA — StopRansomware Guide</span><span class="ru">cisa.gov/stopransomware</span></div>
+      <div class="ref"><span class="rn">[02]</span><span class="rt">ENISA — Threat Landscape for Ransomware Attacks (2023)</span><span class="ru">enisa.europa.eu</span></div>
+      <div class="ref"><span class="rn">[03]</span><span class="rt">MITRE ATT&amp;CK — Software: Ransomware</span><span class="ru">attack.mitre.org</span></div>
+      <div class="ref"><span class="rn">[04]</span><span class="rt">Sophos — The State of Ransomware Report</span><span class="ru">sophos.com</span></div>
+      <div class="ref"><span class="rn">[05]</span><span class="rt">Kaspersky — Ransomware: The complete guide</span><span class="ru">kaspersky.com</span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div class="ft-brand">FIAP <em>·</em> Cybersecurity</div>
+      <div style="margin-top:14px" data-en="Checkpoint 02 · 2026 · São Paulo · Strictly academic use">Checkpoint 02 · 2026 · São Paulo · Uso exclusivamente acadêmico</div>
+    </div>
+    <div style="text-align:right">
+      <div class="mono" style="color:var(--green-soft);font-size:13px">$ python3 src/ransomware_simulado.py</div>
+      <div style="margin-top:8px" data-en="Demo key: &lt;span class=&quot;mono&quot; style=&quot;color:var(--purple-soft)&quot;&gt;teste_&lt;/span&gt;">Chave de demonstração: <span class="mono" style="color:var(--purple-soft)">teste_</span></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // i18n: cache PT on first apply, then swap innerHTML between data-pt and data-en
+  function applyLang(l){
+    document.documentElement.lang = l === 'en' ? 'en' : 'pt-br';
+    document.querySelectorAll('[data-en]').forEach(el => {
+      if (el.dataset.pt === undefined) el.dataset.pt = el.innerHTML;
+      el.innerHTML = (l === 'en' ? el.dataset.en : el.dataset.pt);
+    });
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.lang === l);
+    });
+    try { localStorage.setItem('lang', l); } catch(e){}
+  }
+
+  const saved = (function(){ try { return localStorage.getItem('lang'); } catch(e){ return null; } })();
+  const initial = saved || (navigator.language && navigator.language.toLowerCase().startsWith('pt') ? 'pt' : 'en');
+  applyLang(initial);
+
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.addEventListener('click', () => applyLang(b.dataset.lang));
+  });
+
+  // reveal on scroll
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  },{threshold:.12});
+  document.querySelectorAll('section, .reveal').forEach(el=>{
+    el.classList.add('reveal'); io.observe(el);
+  });
+
+  // smooth anchor
+  document.querySelectorAll('a[href^="#"]').forEach(a=>{
+    a.addEventListener('click',e=>{
+      const t=document.querySelector(a.getAttribute('href'));
+      if(t){ e.preventDefault(); t.scrollIntoView({behavior:'smooth',block:'start'}); }
+    });
+  });
+
+  // ---- Interactive terminal ----
+  (function(){
+    const term  = document.getElementById('term');
+    if (!term) return;
+    const body  = document.getElementById('term-body');
+    const out   = document.getElementById('term-out');
+    const inp   = document.getElementById('term-input');
+    const prom  = document.getElementById('term-prompt');
+
+    const T = {
+      pt: {
+        head: '<span class="c-dim">$</span> python3 src/ransomware_simulado.py\n\n<span class="c-g">============================================================</span>\n  <span class="c-p">SIMULACAO DE RANSOMWARE</span> - FIAP CYBERSECURITY (CP02)\n<span class="c-g">============================================================</span>\n  1) Executar ataque simulado\n  2) Descriptografar (recuperar arquivos)\n  3) Ver status do sistema\n  4) Ver log de operacoes\n  0) Sair\n',
+        promptMenu: 'Escolha:',
+        promptKey:  'Chave de resgate:',
+        invalid:    '<span class="c-warn">[!] Opcao invalida. Escolha 1, 2, 3, 4 ou 0.</span>\n',
+        alreadyAtk: '<span class="c-warn">[!] Ataque ja foi executado. Use a opcao 2 para recuperar antes de re-executar.</span>\n',
+        noAttack:   '<span class="c-warn">[!] Nenhum ataque ativo detectado. Nada a recuperar.</span>\n',
+        askKey:     '<span class="c-dim">[?] Aguardando chave de resgate. Dica: a chave esta no rodape desta pagina.</span>\n',
+        wrongKey:   '<span class="c-warn">[!] Chave incorreta. Acesso negado.</span>\n',
+        bye:        '<span class="c-dim">[+] Sessao encerrada. Pressione qualquer tecla para reiniciar.</span>\n',
+        attackLog: [
+          ['', 80],
+          ['<span class="c-g">[+]</span> Iniciando simulacao de ataque...\n', 220],
+          ['<span class="c-g">[+]</span> Varrendo <span class="c-g">sandbox_alvo/</span>...\n', 320],
+          ['    <span class="c-dim">- anotacoes.txt</span>\n', 90],
+          ['    <span class="c-dim">- diario.txt</span>\n', 90],
+          ['    <span class="c-dim">- trabalho/projeto.docx</span>\n', 90],
+          ['    <span class="c-dim">- fotos/IMG_001.jpg</span>\n', 90],
+          ['    <span class="c-dim">- fotos/IMG_002.jpg</span>\n', 110],
+          ['<span class="c-g">[+]</span> 5 arquivos identificados.\n', 220],
+          ['<span class="c-g">[+]</span> Movendo para <span class="c-g">.quarentena_simulacao/</span>...\n', 320],
+          ['<span class="c-g">[+]</span> Criando placeholders <span class="c-p">.locked</span>...\n', 280],
+          ['<span class="c-g">[+]</span> Gravando manifesto em <span class="c-g">logs/estado.json</span>\n\n', 320],
+          ['<span class="c-p">!!! ATENCAO !!!</span>\n', 180],
+          ['Seus arquivos foram <span class="c-p">BLOQUEADOS</span>.\n', 80],
+          ['  ID da vitima:  <span class="c-p">7a3f9d21c92b</span>\n', 80],
+          ['  Valor:         <span class="c-p">0.5 BTC</span> (ficticio)\n', 80],
+          ['  Carteira:      <span class="c-p">bc1qx9...y4z9</span> (ficticia)\n', 80],
+          ['  Prazo:         <span class="c-p">72:00:00</span>\n\n', 200],
+          ['<span class="c-g">[+]</span> Status: ataque ativo. Use opcao 2 para recuperar.\n', 0]
+        ],
+        decryptLog: [
+          ['<span class="c-g">[+]</span> Chave validada.\n', 200],
+          ['<span class="c-g">[+]</span> Lendo manifesto de <span class="c-g">logs/estado.json</span>...\n', 280],
+          ['<span class="c-g">[+]</span> Restaurando arquivos da quarentena...\n', 200],
+          ['    <span class="c-dim">- anotacoes.txt</span> <span class="c-g">OK</span>\n', 90],
+          ['    <span class="c-dim">- diario.txt</span> <span class="c-g">OK</span>\n', 90],
+          ['    <span class="c-dim">- trabalho/projeto.docx</span> <span class="c-g">OK</span>\n', 90],
+          ['    <span class="c-dim">- fotos/IMG_001.jpg</span> <span class="c-g">OK</span>\n', 90],
+          ['    <span class="c-dim">- fotos/IMG_002.jpg</span> <span class="c-g">OK</span>\n', 110],
+          ['<span class="c-g">[+]</span> Apagando placeholders <span class="c-p">.locked</span>.\n', 220],
+          ['<span class="c-g">[+]</span> Limpando <span class="c-g">.quarentena_simulacao/</span>.\n', 220],
+          ['<span class="c-g">[+]</span> Estado atualizado: ataque inativo.\n', 200],
+          ['<span class="c-g">[+] Recuperacao concluida.</span>\n', 0]
+        ],
+        status: (a) => '<span class="c-dim">[STATUS]</span>\n  Ataque ativo: <span class="' + (a?'c-p':'c-g') + '">' + (a?'SIM':'NAO') + '</span>\n  Sandbox:      <span class="c-g">./sandbox_alvo/</span>\n  Log:          <span class="c-g">./logs/operacao.log</span>\n  Estado:       <span class="c-g">./logs/estado.json</span>\n',
+        log: '<span class="c-dim">[LOG]</span>\n  2026-05-11 20:14:01  Sandbox criada\n  2026-05-11 20:14:02  Arquivos de teste gerados\n  2026-05-11 20:14:33  Varredura iniciada\n  2026-05-11 20:14:34  5 arquivos identificados\n  2026-05-11 20:14:35  Quarentena criada\n  2026-05-11 20:14:36  Placeholders .locked gravados\n  2026-05-11 20:14:36  Manifesto salvo\n  2026-05-11 20:14:36  Tela de resgate exibida\n'
+      },
+      en: {
+        head: '<span class="c-dim">$</span> python3 src/ransomware_simulado.py\n\n<span class="c-g">============================================================</span>\n  <span class="c-p">RANSOMWARE SIMULATION</span> - FIAP CYBERSECURITY (CP02)\n<span class="c-g">============================================================</span>\n  1) Run simulated attack\n  2) Decrypt (recover files)\n  3) Show system status\n  4) Show operation log\n  0) Quit\n',
+        promptMenu: 'Choice:',
+        promptKey:  'Ransom key:',
+        invalid:    '<span class="c-warn">[!] Invalid option. Pick 1, 2, 3, 4 or 0.</span>\n',
+        alreadyAtk: '<span class="c-warn">[!] Attack already executed. Use option 2 to recover before re-running.</span>\n',
+        noAttack:   '<span class="c-warn">[!] No active attack detected. Nothing to recover.</span>\n',
+        askKey:     '<span class="c-dim">[?] Awaiting ransom key. Hint: the key is in this page footer.</span>\n',
+        wrongKey:   '<span class="c-warn">[!] Wrong key. Access denied.</span>\n',
+        bye:        '<span class="c-dim">[+] Session ended. Press any key to restart.</span>\n',
+        attackLog: [
+          ['', 80],
+          ['<span class="c-g">[+]</span> Starting attack simulation...\n', 220],
+          ['<span class="c-g">[+]</span> Scanning <span class="c-g">sandbox_alvo/</span>...\n', 320],
+          ['    <span class="c-dim">- anotacoes.txt</span>\n', 90],
+          ['    <span class="c-dim">- diario.txt</span>\n', 90],
+          ['    <span class="c-dim">- trabalho/projeto.docx</span>\n', 90],
+          ['    <span class="c-dim">- fotos/IMG_001.jpg</span>\n', 90],
+          ['    <span class="c-dim">- fotos/IMG_002.jpg</span>\n', 110],
+          ['<span class="c-g">[+]</span> 5 files identified.\n', 220],
+          ['<span class="c-g">[+]</span> Moving to <span class="c-g">.quarentena_simulacao/</span>...\n', 320],
+          ['<span class="c-g">[+]</span> Creating <span class="c-p">.locked</span> placeholders...\n', 280],
+          ['<span class="c-g">[+]</span> Writing manifest to <span class="c-g">logs/estado.json</span>\n\n', 320],
+          ['<span class="c-p">!!! WARNING !!!</span>\n', 180],
+          ['Your files have been <span class="c-p">LOCKED</span>.\n', 80],
+          ['  Victim ID:    <span class="c-p">7a3f9d21c92b</span>\n', 80],
+          ['  Amount:       <span class="c-p">0.5 BTC</span> (fictional)\n', 80],
+          ['  Wallet:       <span class="c-p">bc1qx9...y4z9</span> (fictional)\n', 80],
+          ['  Deadline:     <span class="c-p">72:00:00</span>\n\n', 200],
+          ['<span class="c-g">[+]</span> Status: attack active. Use option 2 to recover.\n', 0]
+        ],
+        decryptLog: [
+          ['<span class="c-g">[+]</span> Key validated.\n', 200],
+          ['<span class="c-g">[+]</span> Reading manifest from <span class="c-g">logs/estado.json</span>...\n', 280],
+          ['<span class="c-g">[+]</span> Restoring files from quarantine...\n', 200],
+          ['    <span class="c-dim">- anotacoes.txt</span> <span class="c-g">OK</span>\n', 90],
+          ['    <span class="c-dim">- diario.txt</span> <span class="c-g">OK</span>\n', 90],
+          ['    <span class="c-dim">- trabalho/projeto.docx</span> <span class="c-g">OK</span>\n', 90],
+          ['    <span class="c-dim">- fotos/IMG_001.jpg</span> <span class="c-g">OK</span>\n', 90],
+          ['    <span class="c-dim">- fotos/IMG_002.jpg</span> <span class="c-g">OK</span>\n', 110],
+          ['<span class="c-g">[+]</span> Deleting <span class="c-p">.locked</span> placeholders.\n', 220],
+          ['<span class="c-g">[+]</span> Cleaning <span class="c-g">.quarentena_simulacao/</span>.\n', 220],
+          ['<span class="c-g">[+]</span> State updated: attack inactive.\n', 200],
+          ['<span class="c-g">[+] Recovery complete.</span>\n', 0]
+        ],
+        status: (a) => '<span class="c-dim">[STATUS]</span>\n  Attack active: <span class="' + (a?'c-p':'c-g') + '">' + (a?'YES':'NO') + '</span>\n  Sandbox:       <span class="c-g">./sandbox_alvo/</span>\n  Log:           <span class="c-g">./logs/operacao.log</span>\n  State:         <span class="c-g">./logs/estado.json</span>\n',
+        log: '<span class="c-dim">[LOG]</span>\n  2026-05-11 20:14:01  Sandbox created\n  2026-05-11 20:14:02  Test files generated\n  2026-05-11 20:14:33  Scan started\n  2026-05-11 20:14:34  5 files identified\n  2026-05-11 20:14:35  Quarantine created\n  2026-05-11 20:14:36  .locked placeholders written\n  2026-05-11 20:14:36  Manifest saved\n  2026-05-11 20:14:36  Ransom screen shown\n'
+      }
+    };
+
+    let state = 'menu';   // 'menu' | 'asking_key' | 'busy' | 'ended'
+    let attackActive = false;
+    let buf = '';
+
+    function L(){ return document.documentElement.lang === 'en' ? T.en : T.pt; }
+    function scroll(){ body.scrollTop = body.scrollHeight; }
+    function write(html){ out.insertAdjacentHTML('beforeend', html); scroll(); }
+    function setPrompt(p){ prom.textContent = p; }
+    function clearAll(){ out.innerHTML = ''; buf=''; inp.textContent=''; }
+    function echoInputLine(){
+      const line = '<span class="c-dim">' + prom.textContent + '</span> ' + escapeHtml(buf) + '\n';
+      write(line);
+      buf=''; inp.textContent='';
+    }
+    function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+    function reset(showHeader){
+      clearAll();
+      state='menu'; attackActive=false;
+      if (showHeader) write(L().head);
+      setPrompt(L().promptMenu);
+    }
+
+    async function runScript(lines){
+      state = 'busy';
+      inp.textContent=''; buf='';
+      setPrompt('');
+      for (const [html, delay] of lines){
+        if (html) write(html);
+        if (delay > 0) await sleep(delay);
+      }
+      write('\n');
+      state = 'menu';
+      setPrompt(L().promptMenu);
+    }
+    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+    function handleEnter(){
+      if (state === 'busy') return;
+      if (state === 'ended'){ reset(true); return; }
+      const cmd = buf;
+      echoInputLine();
+
+      if (state === 'asking_key'){
+        if (!attackActive){ write(L().noAttack); state='menu'; setPrompt(L().promptMenu); return; }
+        if (cmd === 'teste_'){
+          attackActive = false;
+          runScript(L().decryptLog);
+        } else {
+          write(L().wrongKey);
+          state='menu'; setPrompt(L().promptMenu);
+        }
+        return;
+      }
+
+      const c = cmd.trim();
+      if (c === '') return;
+
+      switch (c){
+        case '1':
+          if (attackActive){ write(L().alreadyAtk); break; }
+          attackActive = true;
+          runScript(L().attackLog);
+          return;
+        case '2':
+          if (!attackActive){ write(L().noAttack); break; }
+          state = 'asking_key';
+          write(L().askKey);
+          setPrompt(L().promptKey);
+          return;
+        case '3':
+          write(L().status(attackActive));
+          break;
+        case '4':
+          write(L().log);
+          break;
+        case '0':
+          write(L().bye);
+          state = 'ended';
+          setPrompt('');
+          return;
+        default:
+          write(L().invalid);
+      }
+    }
+
+    term.addEventListener('click', () => term.focus());
+
+    term.addEventListener('keydown', e => {
+      // Allow tab to leave the terminal
+      if (e.key === 'Tab') return;
+
+      if (state === 'busy') { e.preventDefault(); return; }
+
+      if (state === 'ended'){
+        e.preventDefault();
+        reset(true);
+        return;
+      }
+
+      if (e.key === 'Enter'){ e.preventDefault(); handleEnter(); return; }
+      if (e.key === 'Backspace'){ e.preventDefault(); buf = buf.slice(0,-1); inp.textContent = buf; return; }
+      // Prevent space from scrolling page
+      if (e.key === ' '){ e.preventDefault(); buf += ' '; inp.textContent = buf; return; }
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey){
+        e.preventDefault();
+        // cap input length
+        if (state === 'asking_key'){ if (buf.length < 32) { buf += e.key; inp.textContent = buf; } }
+        else { if (buf.length < 8) { buf += e.key; inp.textContent = buf; } }
+      }
+    });
+
+    // hook into language change: re-render header if we're at clean menu
+    const origApply = window.applyLang;
+    if (typeof origApply === 'function'){
+      window.applyLang = function(l){
+        origApply(l);
+        // refresh prompts
+        if (state === 'menu') setPrompt(L().promptMenu);
+        else if (state === 'asking_key') setPrompt(L().promptKey);
+      };
+    }
+
+    // initial render
+    reset(true);
+  })();
+</script>
+
+</body>
+</html>
